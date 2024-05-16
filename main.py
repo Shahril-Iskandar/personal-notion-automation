@@ -1,7 +1,11 @@
+from gcal import use_credentials, create_event
+from notion import get_json_file, get_notion_database_pages, extracting_interaction_database_page
 from dotenv import dotenv_values
 import requests
 from datetime import datetime, timezone
 import json
+
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 secrets = dotenv_values(".env")
 
@@ -16,132 +20,11 @@ headers = {
     "Notion-Version": "2022-06-28",
 }
 
-def get_json_file(data):
-    with open('db.json', 'w', encoding='utf8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    return data
+# Notion
+interaction_pages = get_notion_database_pages(INTERACTIONS_DATABASE_ID)
+interaction_page_dict = extracting_interaction_database_page(interaction_pages)
 
-def get_notion_database_pages(DATABASE_ID, num_pages=None):
-    '''
-    If num_pages is None, get all pages in the database, otherwise just the defined number.
-    '''
-    url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
-
-    get_all = num_pages is None
-    page_size = 100 if get_all else num_pages
-
-    payload = {"page_size": page_size}
-    response = requests.post(url, json=payload, headers=headers)
-    
-    data = response.json()
-
-    get_json_file(data)
-
-    results = data["results"]
-    return results
-
-pages = get_notion_database_pages(TESTING_DATABASE_ID)
-
-def extracting_testing_database_page(pages):
-    page_dict = {}
-    for page in pages:
-        page_id = page["id"]
-        props = page["properties"]
-
-        page_title = props["Event title"]["title"][0]["text"]["content"]
-        page_start_date = props["Date"]["date"]["start"]
-        # page_start_date = datetime.now().astimezone(timezone.utc).isoformat()
-        page_end_date = props["Date"]["date"]["start"]
-        # page_end_date = datetime.now().astimezone(timezone.utc).isoformat()
-        page_location = props["Location"]["rich_text"][0]["text"]["content"]
-
-        if not props["Description"]["rich_text"]:
-            page_description = None
-        else:
-            page_description = props["Description"]["rich_text"][0]["text"]["content"]
-
-        if not props["Clients"]["relation"]:
-            page_client_id = None
-        else:
-            page_client_id = props["Clients"]["relation"][0]["id"]
-        
-        if not props["Attendees"]["rollup"]["array"]:
-            page_attendees = None
-        else:
-            page_attendees = props["Attendees"]["rollup"]["array"][0]["email"]
-        
-        page_tosync = props["To sync?"]["checkbox"]
-        page_togcal = props["In gcal?"]["checkbox"]
-
-        page_dict[page_id] = {
-            "title": page_title,
-            "start_date": page_start_date,
-            "end_date": page_end_date,
-            "location": page_location,
-            "description": page_description,
-            "client_id": page_client_id,
-            "attendees": page_attendees,
-            "tosync": page_tosync,
-            "togcal": page_togcal
-        }
-    # print(page_title, page_start_date, page_end_date, page_location, page_description, page_client, page_attendees, page_tosync, page_togcal)
-    return page_dict
-
-page_dict = extracting_testing_database_page(pages)
-
-def accessing_extracted_page(page_dict: dict):
-    for page_id, page_info in page_dict.items():
-        print(f"Page ID: {page_id}")
-        print(f"Title: {page_info['title']}")
-        print(f"Start Date: {page_info['start_date']}")
-        print(f"End Date: {page_info['end_date']}")
-        print(f"Location: {page_info['location']}")
-        print(f"Description: {page_info['description']}")
-        print(f"Client ID: {page_info['client_id']}")
-        print(f"Attendees: {page_info['attendees']}")
-        print(f"To Sync?: {page_info['tosync']}")
-        print(f"In GCal?: {page_info['togcal']}")
-        print("\n")
-
-accessing_extracted_page(page_dict)
-
-def create_notion_page(data: dict):
-    create_url = "https://api.notion.com/v1/pages"
-
-    payload ={"parent": {"database_id": TESTING_DATABASE_ID}, "properties": data}
-    
-    res = requests.post(create_url, json=payload, headers=headers)
-    print(res.status_code)
-    return res
-
-# data = {
-#     "Event title": {"title": [{"text": {"content": "Event 4"}}]},
-#     "Date": {"date": {"start": f"{page_start_date}", "end": f"{page_end_date}"}},
-#     "Location": {"rich_text": [{"text": {"content": "Location 4"}}]},
-#     "Description": {"rich_text": [{"text": {"content": "Description 4"}}]},
-#     "Clients": {"relation": [{"id": "993f64b2-9b1e-4a10-b8ab-e6c9fdbfa97e"}]},
-#     "To sync?": {"checkbox": False},
-#     "In gcal?": {"checkbox": False},
-# }
-
-# create_notion_page(data)
-
-# Try see if can get client name from client id
-
-clients = get_notion_database_pages(CLIENTS_DATABASE_ID)
-client_page_dict = {}
-for client in clients:
-    client_id = client["id"]
-    props = client["properties"]
-    client_name = props["Name"]["title"][0]["text"]["content"]
-
-    client_page_dict[client_id] = {
-        "name": client_name
-    }
-
-# Match the client id found in page id to the client name 
-for page_id, page_info in page_dict.items():
-    client_id = page_info['client_id']
-    if client_id in client_page_dict:
-        client_name = client_page_dict[client_id]['name']
-        print(f"Page ID: {page_id} has client: {client_name}")
+# Google Calendar
+creds = use_credentials()
+# print(interaction_page_dict)
+create_event(creds, interaction_page_dict)
