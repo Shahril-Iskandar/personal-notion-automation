@@ -7,7 +7,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-# SCOPES = ["https://www.googleapis.com/auth/calendar"]
+from notion import update_page
+
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 def use_credentials():
     creds = None
@@ -71,6 +73,7 @@ def create_event(creds, page_dict: dict):
         #     start = event["start"].get("dateTime", event["start"].get("date"))
         #     print(start, event["summary"])
         for page_id, page_info in page_dict.items():
+            page_id = page_id
             title = page_info['title']
             start_date = page_info['start_date']
             end_date = page_info['end_date']
@@ -78,26 +81,34 @@ def create_event(creds, page_dict: dict):
             description = page_info['description']
             url =  page_info['url']
             
-        event = {
-            "summary": f"{title}",
-            "location": f"{location}",
-            "description": f"{url} \n\n{description}" ,
-            "colorId": 6,
-            "start": {
-                "dateTime": f"{start_date}",
-                "timeZone": "Asia/Singapore",
-            },
-            "end": {
-                "dateTime": f"{end_date}",
-                "timeZone": "Asia/Singapore",
-            },
-            # "recurrence": [
-            #     "RRULE:FREQ=DAILY;COUNT=2",
-            # ],
-        }
+            event = {
+                "summary": f"{title}",
+                "location": f"{location}",
+                "description": f"{url} \n\n{description}" ,
+                "colorId": 6,
+                "start": {
+                    "dateTime": f"{start_date}",
+                    "timeZone": "Asia/Singapore",
+                },
+                "end": {
+                    "dateTime": f"{end_date}",
+                    "timeZone": "Asia/Singapore",
+                },
+                # "recurrence": [
+                #     "RRULE:FREQ=DAILY;COUNT=2",
+                # ],
+            }
 
-        event = service.events().insert(calendarId="primary", body=event).execute()
-        print(f"Event created: {event.get('htmlLink')}")
+            event = service.events().insert(calendarId="primary", body=event).execute()
+            # TODO: update notion tosync to False and ingcal to True
+            # Check if successfully added, then change notion tosync to False and ingcal to True
+
+            update_data = {"To sync?" : {"checkbox": False}, 
+                           "In gcal?": {"checkbox": True}}
+
+            update_page(page_id, update_data)
+            
+            print(f"Event created: {event.get('htmlLink')}")
     
     except HttpError as error:
         print(f"An error occurred: {error}")

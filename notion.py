@@ -224,3 +224,12 @@ def find_client_name(page_dict: dict):
     return client_page_dict
 
 # client_id_name_dict = find_client_name(interaction_page_dict)
+
+def update_page(page_id: str, data: dict):
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+
+    payload = {"properties": data}
+
+    res = requests.patch(url, json=payload, headers=headers)
+    print(res.status_code)
+    return res
