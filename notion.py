@@ -24,6 +24,7 @@ def get_json_file(data):
 def get_notion_database_pages(DATABASE_ID, num_pages=None):
     '''
     If num_pages is None, get all pages in the database, otherwise just the defined number.
+    Results will return the information in a list of json.
     '''
     url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
 
@@ -94,6 +95,23 @@ def extracting_testing_database_page(pages):
     return page_dict
 
 def extracting_interaction_database_page(pages):
+    '''
+    Extracting information from the database ID and returning a dictionary.
+    Dictionary format: key is the page id, value is a dictionary of the page information.
+    {
+        page_id: {
+            "title": page_title,
+            "start_date": page_start_date,
+            "end_date": page_end_date,
+            "location": page_location,
+            "description": page_description,
+            "client_id": page_client_id,
+            "tosync": page_tosync,
+            "togcal": page_togcal,
+            "url": page_url
+        }
+    }
+    '''
     page_dict = {}
     for page in pages:
         page_id = page["id"]
@@ -116,7 +134,7 @@ def extracting_interaction_database_page(pages):
 
         page_location = props["Location"]["select"]["name"]
 
-        if not props["Description"]["rich_text"]:
+        if not props["Description"]["rich_text"]: # If list is empty
             page_description = None
         else:
             page_description = props["Description"]["rich_text"][0]["text"]["content"]
@@ -130,6 +148,11 @@ def extracting_interaction_database_page(pages):
 
         page_url = page["url"]
 
+        if not props["Gcal ID"]["rich_text"]:
+            page_gcal_id = None
+        else:
+            page_gcal_id = props["Gcal ID"]["rich_text"][0]["text"]["content"]
+
         page_dict[page_id] = {
             "title": page_title,
             "start_date": page_start_date,
@@ -139,8 +162,11 @@ def extracting_interaction_database_page(pages):
             "client_id": page_client_id,
             "tosync": page_tosync,
             "togcal": page_togcal,
-            "url": page_url
+            "url": page_url,
+            "gcal_id": page_gcal_id
         }
+    if not page_dict: # If page_dict is empty
+        print("No pages detected to sync.")
     # print(page_title, page_start_date, page_end_date, page_location, page_description, page_client, page_attendees, page_tosync, page_togcal)
     return page_dict    
 
