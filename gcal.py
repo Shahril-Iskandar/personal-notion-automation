@@ -30,6 +30,11 @@ def use_credentials():
     return creds
 
 def get_next_250_event_id(creds):
+    '''
+    Get the next 250 events in the calendar from today.
+    
+    Return in list.
+    '''
     try:
         service = build("calendar", "v3", credentials=creds)
 
@@ -118,32 +123,50 @@ def update_event(creds, page_dict:dict):
             description = page_info['description']
             url =  page_info['url']
             gcal_id = page_info['gcal_id']
+            tosync = page_info['tosync']
+            togcal = page_info['togcal']
 
-            event = {
-                "summary": f"{title}",
-                "location": f"{location}",
-                "description": f"{url} \n\n{description}" ,
-                "colorId": 6,
-                "start": {
-                    "dateTime": f"{start_date}",
-                    "timeZone": "Asia/Singapore",
-                },
-                "end": {
-                    "dateTime": f"{end_date}",
-                    "timeZone": "Asia/Singapore",
-                },
-            }
-            # print(f"Event: {event} \n")
-            new_event = service.events().update(calendarId="primary", eventId=gcal_id, body=event).execute()
-            
-            print(f"After execute new_event: {new_event} \n")
+            if tosync == True:
+                event = {
+                    "summary": f"{title}",
+                    "location": f"{location}",
+                    "description": f"{url} \n\n{description}" ,
+                    "colorId": 6,
+                    "start": {
+                        "dateTime": f"{start_date}",
+                        "timeZone": "Asia/Singapore",
+                    },
+                    "end": {
+                        "dateTime": f"{end_date}",
+                        "timeZone": "Asia/Singapore",
+                    },
+                }
+                # print(f"Event: {event} \n")
+                service.events().update(calendarId="primary", eventId=gcal_id, body=event).execute()
+                
+                # print(f"After execute new_event: {new_event} \n")
 
-            update_data = {"To sync?" : {"checkbox": False}, 
-                        "In gcal?": {"checkbox": True},
-                        }
+                update_data = {"To sync?" : {"checkbox": False}, 
+                            "In gcal?": {"checkbox": True},
+                            }
 
-            update_page(page_id, update_data)
-            print(f"Event ID {gcal_id} updated. \n")
+                update_page(page_id, update_data)
+                print(f"Event ID {gcal_id} updated. \n")
+
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+
+def delete_event(creds, page_dict:dict, event_ids):
+    try:
+        service = build("calendar", "v3", credentials=creds)
+
+        for _, page_info in page_dict.items():
+            gcal_id = page_info['gcal_id']
+
+        for event_id in event_ids:
+            if event_id != gcal_id:
+                print(event_id)
+                service.events().delete(calendarId="primary", eventId=event_id).execute()
 
     except HttpError as error:
         print(f"An error occurred: {error}")

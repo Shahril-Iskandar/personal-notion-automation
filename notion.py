@@ -117,8 +117,9 @@ def extracting_interaction_database_page(pages):
         page_id = page["id"]
         props = page["properties"]
 
-        if props["To sync?"]["checkbox"] == True:
+        if props["To sync?"]["checkbox"] == True or props["In gcal?"]["checkbox"] == True:
             page_tosync = props["To sync?"]["checkbox"]
+            page_togcal = props["In gcal?"]["checkbox"]
         else:
             continue
 
@@ -144,7 +145,6 @@ def extracting_interaction_database_page(pages):
         else:
             page_client_id = props["Client name"]["relation"][0]["id"]
 
-        page_togcal = props["In gcal?"]["checkbox"]
 
         page_url = page["url"]
 
