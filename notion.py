@@ -107,7 +107,7 @@ def extracting_interaction_database_page(pages):
             "description": page_description,
             "client_id": page_client_id,
             "tosync": page_tosync,
-            "togcal": page_togcal,
+            "ingcal": page_ingcal,
             "url": page_url
         }
     }
@@ -119,7 +119,7 @@ def extracting_interaction_database_page(pages):
 
         if props["To sync?"]["checkbox"] == True or props["In gcal?"]["checkbox"] == True:
             page_tosync = props["To sync?"]["checkbox"]
-            page_togcal = props["In gcal?"]["checkbox"]
+            page_ingcal = props["In gcal?"]["checkbox"]
         else:
             continue
 
@@ -161,7 +161,7 @@ def extracting_interaction_database_page(pages):
             "description": page_description,
             "client_id": page_client_id,
             "tosync": page_tosync,
-            "togcal": page_togcal,
+            "ingcal": page_ingcal,
             "url": page_url,
             "gcal_id": page_gcal_id
         }
