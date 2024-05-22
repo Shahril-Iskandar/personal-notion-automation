@@ -49,7 +49,7 @@ def get_next_250_event_id(creds):
 
         if not events:
             print("No upcoming events found.")
-        
+
         # Get event_id
         event_id = []
         for event in events:
@@ -57,7 +57,7 @@ def get_next_250_event_id(creds):
             # print(start, event["summary"], event["id"])
             event_id.append(event["id"])
         # return start, event["summary"]
-        return event_id
+        return event_id, events, events_result
     
     except HttpError as error:
         print(f"An error occurred: {error}")
@@ -169,3 +169,40 @@ def delete_event(creds, page_dict:dict):
 
 # if __name__ == "__main__":
     # creds = use_credentials()
+
+def update_gcal_to_notion(creds, page_dict:dict):
+    service = build("calendar", "v3", credentials=creds)
+
+    now = dt.datetime.now().isoformat() + "Z"
+
+    # Get upcoming events
+    print(f"Getting the upcoming 250 events")
+    events_result = service.events().list(calendarId="primary", timeMin=now,
+                                    maxResults=250, singleEvents=True,
+                                    orderBy="startTime").execute()
+    events = events_result.get("items", [])
+
+    for event in events:
+        event_id = event['id']
+        description = event['description']
+        split_desc = description.split('\n\n')
+        description = split_desc[1]
+
+        for page_id, page_info in page_dict.items():
+            gcal_id = page_info['gcal_id']
+
+            if event_id == gcal_id:
+                print(f"The event ID {event_id} matches the Google Calendar ID {gcal_id}.")
+
+                data = {
+                    "Meeting name": {"title": [{"text": {"content": f"{event['summary']}"}}]},
+                    "Date": {"date": {"start": f"{event['start']['dateTime']}", "end": f"{event['end']['dateTime']}" }},
+                    "Location": {"select": {"name": f"{event['location']}" }},
+                    "Description": {"rich_text": [{"text": {"content": f"{description}"}}]},
+                    "To sync?": {"checkbox": False},
+                    "In gcal?": {"checkbox": True},
+                }
+
+                update_page(page_id, data)
+
+                print('Event updated in Notion. \n')
