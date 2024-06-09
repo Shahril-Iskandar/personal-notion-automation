@@ -2,6 +2,7 @@ from dotenv import dotenv_values
 import requests
 from datetime import datetime, timezone
 import json
+from utils import generate_random_string
 
 secrets = dotenv_values(".env")
 
@@ -108,7 +109,10 @@ def extracting_interaction_database_page(pages):
             "client_id": page_client_id,
             "tosync": page_tosync,
             "ingcal": page_ingcal,
-            "url": page_url
+            "url": page_url,
+            "gcal_id": page_gcal_id,
+            "sync_token": page_sync_token,
+            "updated_datetime": page_updated_datetime
         }
     }
     '''
@@ -124,6 +128,7 @@ def extracting_interaction_database_page(pages):
             continue
 
         page_title = props["Meeting name"]["title"][0]["text"]["content"]
+        
         page_start_date = props["Date"]["date"]["start"]
         # page_start_date = datetime.now().astimezone(timezone.utc).isoformat()
 
@@ -148,10 +153,20 @@ def extracting_interaction_database_page(pages):
 
         page_url = page["url"]
 
-        if not props["Gcal ID"]["rich_text"]:
+        if not props["Gcal EventID"]["rich_text"]:
             page_gcal_id = None
         else:
-            page_gcal_id = props["Gcal ID"]["rich_text"][0]["text"]["content"]
+            page_gcal_id = props["Gcal EventID"]["rich_text"][0]["text"]["content"]
+
+        if not props["SyncToken"]["rich_text"]:
+            page_sync_token = None
+        else:
+            page_sync_token = props["SyncToken"]["rich_text"][0]["text"]["content"]
+
+        if not props["Updated gcal datetime"]["rich_text"]:
+            page_updated_datetime = None
+        else:
+            page_updated_datetime = props["Updated gcal datetime"]["rich_text"][0]["text"]["content"]
 
         page_dict[page_id] = {
             "title": page_title,
@@ -163,7 +178,9 @@ def extracting_interaction_database_page(pages):
             "tosync": page_tosync,
             "ingcal": page_ingcal,
             "url": page_url,
-            "gcal_id": page_gcal_id
+            "gcal_id": page_gcal_id,
+            "sync_token": page_sync_token,
+            "updated_datetime": page_updated_datetime
         }
     if not page_dict: # If page_dict is empty
         print("No pages detected to sync.")
@@ -216,7 +233,7 @@ def create_notion_page(data: dict):
     return res
 
 # data = {
-#     "Event title": {"title": [{"text": {"content": "Event 4"}}]},
+#     "Meeting name": {"title": [{"text": {"content": "Event 4"}}]},
 #     "Date": {"date": {"start": f"{page_start_date}", "end": f"{page_end_date}"}},
 #     "Location": {"select": {"name": "Online" }},
 #     "Description": {"rich_text": [{"text": {"content": "Description 4"}}]},
